@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111827">
+<meta name="description" content="StudyTask — студенттердің тапсырмаларын басқару PWA">
+<title>StudyTask — Тапсырмалар менеджері</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<style>
+:root{--bg:#0b1120;--panel:#151f32;--line:#293750;--muted:#94a3b8;--purple:#8b5cf6;--green:#4ade80;--orange:#fb923c;--red:#f87171}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f8fafc;font-family:Inter,Arial,sans-serif;min-height:100vh}
+button,input,textarea,select{font:inherit}button{cursor:pointer}
+.container{width:min(1120px,92%);margin:auto;padding:30px 0}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:32px}
+.logo{font-size:27px;font-weight:800;color:#a78bfa}.logo span{color:#fff}
+.lang,.filter,.secondary{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:9px;padding:10px 13px}
+.hero{margin-bottom:24px}.hero h1{font-size:clamp(25px,4vw,36px);margin:0 0 9px}.hero p{color:var(--muted);line-height:1.6;margin:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.stat,.panel,.progress{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+.stat p{margin:0 0 10px;color:var(--muted);font-size:14px}.stat strong{font-size:30px}.purple{color:#a78bfa}.green{color:var(--green)}.orange{color:var(--orange)}
+.progress{margin-bottom:22px}.progress-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.progress-head span{color:#c4b5fd;font-weight:700}
+.track{height:10px;background:#334155;border-radius:20px;overflow:hidden}.fill{height:100%;width:0;background:linear-gradient(90deg,#7c3aed,#c4b5fd);transition:width .25s}
+.layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}.panel h2{font-size:20px;margin:0 0 18px}
+.field{margin-bottom:14px}.field label{display:block;color:#cbd5e1;font-size:13px;margin-bottom:7px}
+.field input,.field textarea,.field select{width:100%;background:#0b1120;border:1px solid #334155;border-radius:9px;padding:11px;color:#f8fafc;outline:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--purple)}textarea{resize:vertical;min-height:76px}
+.primary{width:100%;background:#7c3aed;color:white;border:0;border-radius:9px;padding:13px;font-weight:700}.primary:hover{background:#6d28d9}
+.message{min-height:17px;color:var(--red);font-size:13px;margin:0 0 9px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px}.filter.active{background:#7c3aed;border-color:#7c3aed;color:white}
+.task-list{display:grid;gap:12px}.task{background:#0e192b;border:1px solid var(--line);border-radius:12px;padding:16px}.task-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.task h3{margin:0 0 7px;font-size:17px;overflow-wrap:anywhere}.task p{margin:8px 0;color:var(--muted);font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.tag{font-size:12px;padding:5px 8px;border-radius:6px;background:#26344c;color:#cbd5e1}.priority-high{color:#fca5a5}.priority-medium{color:#fcd34d}.priority-low{color:#86efac}
+.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}.secondary{padding:8px 10px;font-size:12px}.danger{color:#fca5a5}.done h3{text-decoration:line-through}.empty{text-align:center;padding:32px;color:#64748b;line-height:1.6}
+footer{text-align:center;color:#64748b;font-size:12px;padding:30px 0 8px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.container{padding-top:20px}}
+</style>
+</head>
+<body>
+<div class="container">
+<header><div class="logo">Study<span>Task.</span></div><button class="lang" id="langBtn" type="button">Қазақша / Русский</button></header>
+<section class="hero"><h1 id="welcome"></h1><p id="intro"></p></section>
+<section class="stats">
+<div class="stat"><p id="totalLabel"></p><strong class="purple" id="total">0</strong></div>
+<div class="stat"><p id="activeLabel"></p><strong class="orange" id="active">0</strong></div>
+<div class="stat"><p id="doneLabel"></p><strong class="green" id="done">0</strong></div>
+</section>
+<section class="progress"><div class="progress-head"><b id="progressLabel"></b><span id="percent">0%</span></div><div class="track"><div class="fill" id="fill"></div></div></section>
+<main class="layout">
+<section class="panel">
+<h2 id="formTitle"></h2>
+<form id="taskForm" novalidate>
+<div class="field"><label id="nameLabel" for="name"></label><input id="name" maxlength="100" required></div>
+<div class="field"><label id="subjectLabel" for="subject"></label><input id="subject" maxlength="60" required></div>
+<div class="field"><label id="descLabel" for="description"></label><textarea id="description" maxlength="500"></textarea></div>
+<div class="field"><label id="dateLabel" for="deadline"></label><input id="deadline" type="date" required></div>
+<div class="field"><label id="priorityLabel" for="priority"></label><select id="priority"><option value="high"></option><option value="medium" selected></option><option value="low"></option></select></div>
+<div class="field"><label id="statusLabel" for="status"></label><select id="status"><option value="pending"></option><option value="progress"></option><option value="done"></option></select></div>
+<p class="message" id="message" aria-live="polite"></p>
+<button class="primary" id="submit" type="submit"></button>
+<button class="secondary" id="cancel" type="button" hidden style="width:100%;margin-top:8px"></button>
+</form>
+</section>
+<section class="panel">
+<h2 id="listTitle"></h2>
+<div class="toolbar">
+<button class="filter active" data-filter="all" id="filterAll"></button>
+<button class="filter" data-filter="pending" id="filterPending"></button>
+<button class="filter" data-filter="progress" id="filterProgress"></button>
+<button class="filter" data-filter="done" id="filterDone"></button>
+</div>
+<div class="task-list" id="tasks" aria-live="polite"></div>
+</section>
+</main>
+<footer id="footer"></footer>
+</div>
+<script>
+"use strict";
+const KEY="studytask_manager_v2", LANG_KEY="studytask_language";
+const words={
+kk:{welcome:"Оқуыңды жоспарла. Мақсатыңа уақытында жет!",intro:"Тапсырмаларыңды бір жерден басқар, дедлайндарды бақыла және оқу барысын бағала.",
+total:"Барлық тапсырма",active:"Аяқталмаған",done:"Орындалған",progress:"Жалпы орындалу барысы",
+new:"Жаңа тапсырма",edit:"Тапсырманы өңдеу",name:"Тапсырма атауы *",subject:"Пән атауы *",desc:"Сипаттамасы",date:"Дедлайн күні *",priority:"Басымдық деңгейі",status:"Орындау мәртебесі",
+high:"Жоғары",medium:"Орташа",low:"Төмен",pending:"Орындалмаған",working:"Орындалуда",doneStatus:"Орындалды",
+add:"+ Тапсырма қосу",save:"Өзгерістерді сақтау",cancel:"Болдырмау",list:"Менің тапсырмаларым",all:"Барлығы",filterPending:"Орындалмаған",filterProgress:"Орындалуда",filterDone:"Орындалған",
+empty:"Бұл тізімде тапсырма жоқ.",subjectTag:"Пән",due:"Дедлайн",created:"Құрылған күні",overdue:"Мерзімі өткен",today:"Бүгін",
+markDone:"Орындалды",markWorking:"Орындалуда",markPending:"Қайта ашу",change:"Өңдеу",remove:"Жою",
+invalid:"Міндетті өрістерді дұрыс толтырыңыз. Дедлайн бүгіннен ерте болмауы керек.",
+duplicate:"Осындай атауы бар тапсырма бұрыннан бар.",confirm:"Тапсырманы жойғыңыз келе ме?",
+storage:"Деректерді сақтау мүмкін болмады. Браузер жадын тексеріңіз.",
+footer:"StudyTask © 2026 | Студенттерге арналған тапсырмалар менеджері"},
+ru:{welcome:"Планируй учёбу. Достигай целей вовремя!",intro:"Управляй задачами в одном месте, следи за дедлайнами и оценивай прогресс.",
+total:"Всего задач",active:"Не завершено",done:"Выполнено",progress:"Общий прогресс выполнения",
+new:"Новая задача",edit:"Редактирование задачи",name:"Название задачи *",subject:"Название предмета *",desc:"Описание",date:"Дата дедлайна *",priority:"Приоритет",status:"Статус выполнения",
+high:"Высокий",medium:"Средний",low:"Низкий",pending:"Не выполнено",working:"В процессе",doneStatus:"Выполнено",
+add:"+ Добавить задачу",save:"Сохранить изменения",cancel:"Отмена",list:"Мои задачи",all:"Все",filterPending:"Не выполнено",filterProgress:"В процессе",filterDone:"Выполнено",
+empty:"В этом списке пока нет задач.",subjectTag:"Предмет",due:"Дедлайн",created:"Создано",overdue:"Просрочено",today:"Сегодня",
+markDone:"Выполнено",markWorking:"В процессе",markPending:"Вернуть",change:"Изменить",remove:"Удалить",
+invalid:"Заполните обязательные поля. Дедлайн не может быть раньше сегодняшнего дня.",
+duplicate:"Задача с таким названием уже существует.",confirm:"Удалить эту задачу?",
+storage:"Не удалось сохранить данные. Проверьте хранилище браузера.",
+footer:"StudyTask © 2026 | Менеджер задач для студентов"}
+};
+const $=id=>document.getElementById(id);
+let lang=localStorage.getItem(LANG_KEY)==="ru"?"ru":"kk",filter="all",editing=null,tasks=load();
+function todayISO(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
+$("deadline").min=todayISO();
+function tr(k){return words[lang][k]}
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(x)?x.filter(t=>t&&typeof t.id==="string"&&typeof t.name==="string"&&typeof t.subject==="string"&&typeof t.deadline==="string"&&["high","medium","low"].includes(t.priority)&&["pending","progress","done"].includes(t.status)):[]}catch{return []}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(tasks));return true}catch{$("message").textContent=tr("storage");return false}}
+function el(tag,cls,txt){const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=String(txt);return n}
+function updateLanguage(){
+document.documentElement.lang=lang;
+const map={welcome:"welcome",intro:"intro",totalLabel:"total",activeLabel:"active",doneLabel:"done",progressLabel:"progress",nameLabel:"name",subjectLabel:"subject",descLabel:"desc",dateLabel:"date",priorityLabel:"priority",statusLabel:"status",listTitle:"list",filterAll:"all",filterPending:"filterPending",filterProgress:"filterProgress",filterDone:"filterDone",footer:"footer"};
+for(const [id,key] of Object.entries(map))$(id).textContent=tr(key);
+$("priority").options[0].textContent=tr("high");$("priority").options[1].textContent=tr("medium");$("priority").options[2].textContent=tr("low");
+$("status").options[0].textContent=tr("pending");$("status").options[1].textContent=tr("working");$("status").options[2].textContent=tr("doneStatus");
+$("langBtn").textContent=lang==="kk"?"Қазақша / Русский":"Русский / Қазақша";
+formLabels();render();
+}
+function formLabels(){$("formTitle").textContent=editing?tr("edit"):tr("new");$("submit").textContent=editing?tr("save"):tr("add");$("cancel").textContent=tr("cancel");$("cancel").hidden=!editing}
+function resetForm(){$("taskForm").reset();editing=null;$("deadline").min=todayISO();$("message").textContent="";formLabels()}
+$("taskForm").addEventListener("submit",e=>{
+e.preventDefault();const name=$("name").value.trim(),subject=$("subject").value.trim(),description=$("description").value.trim(),deadline=$("deadline").value,priority=$("priority").value,status=$("status").value;
+$("message").textContent="";
+if(!name||!subject||!deadline||deadline<todayISO()||!["high","medium","low"].includes(priority)||!["pending","progress","done"].includes(status)){$("message").textContent=tr("invalid");return}
+if(tasks.some(t=>t.name.toLocaleLowerCase()===name.toLocaleLowerCase()&&t.id!==editing)){$("message").textContent=tr("duplicate");return}
+const before=tasks.map(x=>({...x}));
+if(editing){const i=tasks.findIndex(t=>t.id===editing);if(i<0)return;tasks[i]={...tasks[i],name,subject,description,deadline,priority,status}}
+else tasks.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random(),name,subject,description,deadline,priority,status,createdAt:new Date().toISOString()});
+if(persist()){resetForm();render()}else tasks=before;
+});
+function editTask(id){const t=tasks.find(x=>x.id===id);if(!t)return;editing=id;$("name").value=t.name;$("subject").value=t.subject;$("description").value=t.description||"";$("deadline").value=t.deadline;$("deadline").min="";$("priority").value=t.priority;$("status").value=t.status;$("message").textContent="";formLabels();$("name").focus();window.scrollTo({top:0,behavior:"smooth"})}
+function removeTask(id){if(!confirm(tr("confirm")))return;const old=tasks;tasks=tasks.filter(t=>t.id!==id);if(persist()){if(editing===id)resetForm();render()}else tasks=old}
+function setStatus(id,status){const t=tasks.find(x=>x.id===id);if(!t)return;const old=t.status;t.status=status;if(persist())render();else t.status=old}
+function dateText(value){const d=new Date(value+"T00:00:00");return d.toLocaleDateString(lang==="kk"?"kk-KZ":"ru-RU")}
+function render(){
+const total=tasks.length,done=tasks.filter(t=>t.status==="done").length,active=total-done,pct=total?Math.round(done/total*100):0;
+$("total").textContent=total;$("active").textContent=active;$("done").textContent=done;$("percent").textContent=pct+"%";$("fill").style.width=pct+"%";
+const root=$("tasks");root.replaceChildren();
+const items=tasks.filter(t=>filter==="all"||t.status===filter).sort((a,b)=>a.deadline.localeCompare(b.deadline)||a.name.localeCompare(b.name));
+if(!items.length)root.append(el("div","empty",tr("empty")));
+for(const t of items){
+const card=el("article","task"+(t.status==="done"?" done":"")),top=el("div","task-top"),left=el("div");
+left.append(el("h3","",t.name),el("div","meta",tr("subjectTag")+": "+t.subject));top.append(left,el("span","tag priority-"+t.priority,tr(t.priority)));card.append(top);
+if(t.description)card.append(el("p","",t.description));
+const meta=el("div","meta");let due=tr("due")+": "+dateText(t.deadline);if(t.status!=="done"&&t.deadline<todayISO())due+=" — "+tr("overdue");else if(t.status!=="done"&&t.deadline===todayISO())due+=" — "+tr("today");
+meta.append(el("span","tag",due),el("span","tag",tr(t.status==="pending"?"pending":t.status==="progress"?"working":"doneStatus")));
+if(t.createdAt)meta.append(el("span","tag",tr("created")+": "+dateText(t.createdAt.slice(0,10))));card.append(meta);
+const actions=el("div","actions");
+const statusBtn=el("button","secondary",t.status==="pending"?tr("markWorking"):t.status==="progress"?tr("markDone"):tr("markPending"));
+statusBtn.type="button";statusBtn.addEventListener("click",()=>setStatus(t.id,t.status==="pending"?"progress":t.status==="progress"?"done":"pending"));
+const edit=el("button","secondary",tr("change"));edit.type="button";edit.addEventListener("click",()=>editTask(t.id));
+const del=el("button","secondary danger",tr("remove"));del.type="button";del.addEventListener("click",()=>removeTask(t.id));
+actions.append(statusBtn,edit,del);card.append(actions);root.append(card);
+}
+document.querySelectorAll(".filter").forEach(b=>b.classList.toggle("active",b.dataset.filter===filter));
+}
+document.querySelectorAll(".filter").forEach(b=>b.addEventListener("click",()=>{filter=b.dataset.filter;render()}));
+$("langBtn").addEventListener("click",()=>{lang=lang==="kk"?"ru":"kk";localStorage.setItem(LANG_KEY,lang);updateLanguage()});
+$("cancel").addEventListener("click",resetForm);
+updateLanguage();
+if("serviceWorker" in navigator && location.protocol!=="file:"){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(err=>console.error("Service Worker:",err)))}
+</script>
+</body>
+</html>
